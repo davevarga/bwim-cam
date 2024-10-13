@@ -1,0 +1,10 @@
+path: /home/davevarga/Projects/bwim-cam/datasets/uc-detrac
+train: images/train
+val: images/val
+test: # test images (optional
+
+# Number of classes
+nc: 4
+
+# Class names
+names: ['car', 'truck', 'bus', 'van']
