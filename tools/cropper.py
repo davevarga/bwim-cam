@@ -68,8 +68,7 @@ class Application(tk.Tk):
 
     def start(self):
         cropper = self.frames[Cropper]
-        cropper.config(0, len(self.model))
-        cropper.load_current()
+        cropper.config(420, len(self.model))
 
 
 class Cropper(tk.Frame):
@@ -113,28 +112,32 @@ class Cropper(tk.Frame):
         self.button_frame.columnconfigure(1, weight=1)
 
         # Save button
-        self.save_button = tk.Button(self.button_frame, text="Save Cropped Image", command=self.save, state=tk.DISABLED)
+        self.save_button = tk.Button(self.button_frame, text="Save", command=self.save, state=tk.DISABLED)
         self.save_button.grid(row=0, column=0, sticky="we")
 
         # Next button
-        self.next_button = tk.Button(self.button_frame, text="Next Image", command=self.next)
+        self.next_button = tk.Button(self.button_frame, text="Next", command=self.next)
         self.next_button.grid(row=0, column=1, sticky="we")
 
         # Undo button
         undo_button = tk.Button(self.button_frame, text="Undo", command=self.undo)
         undo_button.grid(row=0, column=2, sticky="we")
 
+        # Previous button
+        self.prev_button = tk.Button(self.button_frame, text="Previous", command=self.previous)
+        self.prev_button.grid(row=0, column=3, sticky="we")  # Place before "Next Image" button
+
         # Restart button
         restart_button = tk.Button(self.button_frame, text="Restart", command=lambda: controller.show_frame(Menu))
-        restart_button.grid(row=0, column=3, sticky="we")
+        restart_button.grid(row=0, column=4, sticky="we")
 
         # Create a counter label to display the current image index
         self.index_label = tk.Label(self.button_frame, text=f"{self.index + 1}/{self.size}")
-        self.index_label.grid(row=0, column=4, sticky="we")
+        self.index_label.grid(row=0, column=5, sticky="we")
 
         # Add sizegrip to bottom-right corner of frame
         self.sizegrip = ttk.Sizegrip(self.button_frame)
-        self.sizegrip.grid(row=0, column=5, sticky="se")
+        self.sizegrip.grid(row=0, column=6, sticky="se")
 
         # Bind mouse events to the image label
         self.image_label.bind("<Button-1>", self.start_rect)
@@ -156,9 +159,9 @@ class Cropper(tk.Frame):
             # Resize the main window to fit the image and control frame
             self.controller.update_idletasks()
             self.controller.geometry(
-                f"{self.image.width}x"
-                f"{self.image.height + 10 +
-                   self.button_frame.winfo_height()}")
+                f"{max(self.image.width, 230)}x"
+                f"{max(self.image.height + 10 +
+                   self.button_frame.winfo_height(), 448)}")
 
             # Load label into memory
             self.labels = read_label(label_path)
@@ -249,6 +252,11 @@ class Cropper(tk.Frame):
     def next(self):
         self.index += 1
         self.load_current()
+
+    def previous(self):
+        if self.index > 0:
+            self.index -= 1
+            self.load_current()
 
     def undo(self, event=None):
         self.load_current()
@@ -345,7 +353,7 @@ class Model:
             "Directories must have the same length"
 
     def __len__(self):
-        return len(self.images_dir)
+        return len(self.images)
 
     def __getitem__(self, index):
         image_path = os.path.join(self.images_dir, self.images[index])
