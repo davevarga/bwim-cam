@@ -2,11 +2,12 @@ import os
 import cv2
 import math
 import random
+import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
 
-from utils.labels import read_label
+from utils.labels import read_labels
 
 # Predefined color list
 predefined_colors = ['red', 'green', 'blue', 'yellow', 'cyan', 'magenta', 'orange', 'purple']
@@ -19,22 +20,39 @@ color_dict = {
 
 
 def read_images(image_paths):
-    """Loads images from a list of file paths."""
+    """
+    Loads images from a list of file paths.
+
+    This function reads one or more images from the specified file paths.
+    If a single file path is provided, it returns the image as a single object.
+    If a list of file paths is provided, it returns a list of images,
+    excluding any files that couldn't be loaded.
+
+    :param image_paths: A single image file path as a string, or a list of image file paths.
+    :return: The loaded image(s). If a single path is provided, a single image is returned.
+             If a list of paths is provided, a list of loaded images is returned.
+    """
     if isinstance(image_paths, str): return cv2.imread(image_paths)
     else: return [cv2.imread(path) for path in image_paths if cv2.imread(path) is not None]
 
 
-def read_labels(label_file_paths):
-    """Reads labels from a list of file in the specified format."""
-    if isinstance(label_file_paths, str): return read_label(label_file_paths)
-    labels = []
-    for label_file_path in label_file_paths:
-        labels.append(read_label(label_file_path))
-    return labels
-
-
 def load(image_paths, label_paths):
-    """Loads images and labels into the memory from the list of file paths."""
+    """Loads images and labels into the memory from the list of file paths.
+
+    Args:
+        image_paths (list or str): A list of image file paths or a single file path.
+        label_paths (list or str): A list of label file paths or a single file path.
+
+    Returns:
+        tuple: A tuple of (images, labels).
+    """
+
+    # Ensure both inputs are lists
+    if not isinstance(image_paths, list) and not isinstance(label_paths, list):
+        image = read_images(image_paths)
+        label = read_labels(label_paths)
+        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB), label
+
     # Check if parameters are valid
     if len(image_paths) != len(label_paths):
         raise ValueError('Number of images and labels paths do not match.')
@@ -45,7 +63,6 @@ def load(image_paths, label_paths):
 
     # Return images and labels
     return images, labels
-
 
 def save_images(images, image_names, target_directory):
     """
@@ -90,7 +107,6 @@ d
 
     # Convert normalized coordinates to actual pixel values
     for label in labels:
-        print(label)
         class_id, x_center, y_center, box_width, box_height = label
 
         # Convert normalized center and size to absolute pixel values
@@ -142,7 +158,6 @@ def grid(images, layout=None, figsize=(10, 10)):
     Returns:
     - None. Displays the images in a grid.
     """
-
     num_images = len(images)
 
     # Determine the best layout if not provided
@@ -230,19 +245,22 @@ def frame(images, labels, class_names=None):
     Frames labeled object in each image.
 
     Parameters:
-    - images (list): Path to the directory containing image files.
+    - images (list): List of image arrays.
     - labels (list): Path to the directory containing label files.
     - class_names (list): Name referring to objects in the image
 
     Returns:
     - The list of framed images.
     """
+    # Ensure images are in list format
+    if isinstance(images, np.ndarray):
+        images = [images]  # Wrap in a list if it's a single image
 
     # If only one image is provided
-    if images.ndim == 3:
-        return boxes(images, labels, class_names)
+    if len(images) == 1:
+        return boxes(images[0], labels, class_names)
 
-    # Frame detection object on every image, to validate object types and correct label annotation
+    # Frame detection object on every image
     framed_images = []
     for image, label in zip(images, labels):
         image_with_detections = boxes(image, label, class_names)
@@ -290,10 +308,9 @@ def random_plot(images_dir, labels_dir, num_of_images=4, class_names=None):
 
 
 if __name__ == "__main__":
-    images_dir = './datasets/uc-detrac/train/images'
-    labels_dir = './datasets/uc-detrac/train/labels'
-    names = ['bicycle', 'bus', 'car', 'motorbike', 'person', 'truck']
+    images_dir = '/home/davevarga/Projects/datasets/traffic-surveillance/valid/images'
+    labels_dir = '/home/davevarga/Projects/datasets/traffic-surveillance/valid/labels'
+    output_dir = '/home/davevarga/Projects/datasets/traffic-surveillance/train/temp'
+    names = ['bus', 'car', 'motorbike', 'truck']
 
-    # Chose target directory where images and labels will be saved
-    random_plot(images_dir, labels_dir, num_of_images=4, class_names=names)
-
+    random_plot(images_dir, labels_dir, 4, names)

@@ -35,7 +35,7 @@ if __name__ == '__main__':
     settings.update({'mlflow': True})
 
     # A small model would suffice
-    model = YOLO('models/cardetect/weights/best.pt', task='detect')
+    model = YOLO('yolo11s.pt', task='detect')
 
     # Train on GPU if is available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

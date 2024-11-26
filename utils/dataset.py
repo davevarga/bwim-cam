@@ -1,7 +1,11 @@
 import os
-from utils.augment import center_crop
-from utils.labels import write_labels
-from utils.plot import load, save_images
+
+import cv2
+import numpy as np
+
+from utils.augment import augment, augment_list, decode_augment
+from utils.labels import read_labels, write_labels
+from utils.plot import read_images
 
 
 def get_corresponding(file_path, directory):
@@ -102,32 +106,53 @@ def delete_unmatched(source_dir, reference_dir):
 
     print(f"Removed {counter} files from {source_dir}")
 
-if __name__ == "__main__":
-    # Remove unmatched from val dataset
-    images_dir = './datasets/uc-detrac/val/images'
-    labels_dir = './datasets/uc-detrac/val/labels'
 
-    # Configure croping parameters
-    crop_percentage = 0.9
-    crop_threshold = 0.2
+def dataset_augment(images_dir, labels_dir):
+    images_path = sorted(os.listdir(images_dir))
+    labels_path = sorted(os.listdir(labels_dir))
 
-    # Crop images
-    image_paths = os.listdir(images_dir)
-    label_paths = os.listdir(labels_dir)
+    # Use progress bar
+    from tqdm import tqdm
 
-    for image_path, label_path in zip(image_paths, label_paths):
+    for image_path, label_path in tqdm(zip(images_path, labels_path), total=len(images_path), desc='Augmentation'):
+        # Construct full path
         image_path = os.path.join(images_dir, image_path)
         label_path = os.path.join(labels_dir, label_path)
 
-        # Load image and labels into memory
-        [image], [labels] = load([image_path], [label_path])
+        # Load image into memory
+        image = read_images(image_path)
+        label = read_labels(label_path)
 
-        # Crop images
-        cropped_image, cropped_labels = center_crop(image, labels, crop_percentage, crop_threshold)
+        for function in augment_list.keys():
+            # Decode and apply the respective augmentation
+            augment_function = decode_augment(function)
+            augmented_image, augmented_label = augment(
+                image, label, augment_function, apply_prob=0.5)
 
-        # Save cropped images
-        name = os.path.basename(image_path)
-        save_images([cropped_image], [name], images_dir)
+            # Check if the augmentation was applied (image differs from the original)
+            if not np.array_equal(image, augmented_image):
+                # Construct new file names with the augmentation type appended
+                basename = os.path.basename(image_path)
+                name, ext = os.path.splitext(basename)
 
-        # Save modified labels
-        write_labels(label_path, cropped_labels)
+                # Extract code for respective augmentation
+                code = augment_list[function]
+
+                # Construct from full path
+                augmented_image_path = os.path.join(
+                    images_dir,
+                    f"{name}{code}{ext}")
+                augmented_label_path = os.path.join(
+                    labels_dir,
+                    f"{name}{code}.txt")
+
+                # Save the augmented image and label
+                cv2.imwrite(augmented_image_path, augmented_image)
+                write_labels(augmented_label_path, augmented_label)
+
+
+if __name__ == "__main__":
+    images_dir = '/home/davevarga/Projects/datasets/traffic-detection/train/images'
+    labels_dir = '/home/davevarga/Projects/datasets/traffic-detection/train/labels'
+
+    dataset_augment(images_dir, labels_dir)
