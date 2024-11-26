@@ -4,10 +4,10 @@ from ultralytics import YOLO
 
 if __name__ == '__main__':
     # Load the YOLO11 model
-    model = YOLO("./models/traffic_monitor/weights/best.pt")
+    model = YOLO("./axle/wheel-detection6/weights/best.pt")
 
     # Open the video file
-    video_path = "traffic-B.mp4"
+    video_path = "/home/davevarga/Projects/datasets/finetune-dataset/sample_video.mp4"
     cap = cv2.VideoCapture(video_path)
 
     # Loop through the video frames
